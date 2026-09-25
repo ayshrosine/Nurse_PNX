@@ -94,7 +94,7 @@ export function LoginPanel({
 
       {!googleConfigured && (
         <p className="text-center text-xs text-muted">
-          Google sign-in isn't configured yet. Set <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">GOOGLE_CLIENT_ID</code> and <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">GOOGLE_CLIENT_SECRET</code> in your environment.
+          Google sign-in isn&apos;t configured yet. Set <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">GOOGLE_CLIENT_ID</code> and <code className="rounded bg-sunken px-1.5 py-0.5 text-xs">GOOGLE_CLIENT_SECRET</code> in your environment.
         </p>
       )}
 
