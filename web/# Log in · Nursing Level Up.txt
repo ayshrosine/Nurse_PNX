@@ -1,0 +1,38 @@
+# Log in · Nursing Level Up
+
+[Skip to content](http://localhost:3000/login#main)
+[Nursing Level Up](http://localhost:3000/)
+[Test Series](http://localhost:3000/test-series)
+[Log in](http://localhost:3000/login)
+
+# Practice smarter.Prepare better.
+Timed, exam-level MCQ test series crafted for nursing students and aspirants — with detailed explanations for every answer.
+- ✦Free tests to get started instantly
+- ◈Exam conditions with real timer & navigator
+- ◉Detailed explanations for every question
+
+## Welcome
+Sign in to start tests, track progress, and review your results.
+Google sign-in isn't configured yet. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in your environment.
+
+```
+GOOGLE_CLIENT_ID
+```
+
+
+```
+GOOGLE_CLIENT_SECRET
+```
+
+Signs in as an existing account, or creates a new student.
+We only use your Google name and email to create your account.Your phone number is asked for separately after sign-in.
+[Nursing Level Up](http://localhost:3000/)
+Exam-level MCQ practice for nursing students and aspirants. Practice smarter, prepare better.
+- [All test series](http://localhost:3000/test-series)
+- [Your dashboard](http://localhost:3000/dashboard)
+[All test series](http://localhost:3000/test-series)
+[Your dashboard](http://localhost:3000/dashboard)
+- [Log in](http://localhost:3000/login)
+- [Profile](http://localhost:3000/profile)
+[Log in](http://localhost:3000/login)
+[Profile](http://localhost:3000/profile)
