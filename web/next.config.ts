@@ -13,11 +13,6 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   // Node-only packages (native bindings, workers, large parsers) are loaded at runtime, not bundled.
   serverExternalPackages: ['pg', 'tesseract.js', 'pdf-parse', 'mammoth', '@napi-rs/canvas'],
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   poweredByHeader: false,
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
