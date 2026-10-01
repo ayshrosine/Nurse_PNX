@@ -1,0 +1,401 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  googleId       String?   @unique @map("google_id")
+  name           String
+  email          String    @unique @db.VarChar // Using CITEXT would need raw sql, string here is fine for prisma
+  phone          String?
+  role           UserRole  @default(STUDENT)
+  status         UserStatus @default(ACTIVE)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  lastLoginAt    DateTime? @map("last_login_at")
+
+  testSeries     TestSeries[] @relation("CreatedBy")
+  documents      Document[]
+  purchases      Purchase[]
+  attempts       Attempt[]
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+  @@map("user_role")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  @@map("user_status")
+}
+
+model Program {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code      String   @unique
+  name      String
+
+  semesters ProgramSemester[]
+  subjects  ProgramSubject[]
+  testSeries TestSeries[]
+  examPapers ExamPaper[]
+
+  @@map("programs")
+}
+
+model Semester {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  number    Int
+  label     String
+
+  programs  ProgramSemester[]
+
+  @@map("semesters")
+}
+
+model ProgramSemester {
+  programId  String @map("program_id") @db.Uuid
+  semesterId String @map("semester_id") @db.Uuid
+
+  program    Program  @relation(fields: [programId], references: [id])
+  semester   Semester @relation(fields: [semesterId], references: [id])
+
+  @@id([programId, semesterId])
+  @@map("program_semesters")
+}
+
+model Subject {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  slug      String   @unique
+
+  programs  ProgramSubject[]
+  topics    Topic[]
+  questions Question[]
+  testSeries TestSeries[]
+
+  @@map("subjects")
+}
+
+model ProgramSubject {
+  programId  String @map("program_id") @db.Uuid
+  semesterId String? @map("semester_id") @db.Uuid
+  subjectId  String @map("subject_id") @db.Uuid
+
+  program    Program  @relation(fields: [programId], references: [id])
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+
+  @@id([programId, subjectId])
+  @@map("program_subjects")
+}
+
+model Topic {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subjectId String   @map("subject_id") @db.Uuid
+  parentId  String?  @map("parent_id") @db.Uuid
+  name      String
+  slug      String
+
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  parent    Topic?   @relation("TopicHierarchy", fields: [parentId], references: [id])
+  children  Topic[]  @relation("TopicHierarchy")
+  questions Question[]
+  testSeries TestSeries[]
+
+  @@unique([subjectId, slug])
+  @@map("topics")
+}
+
+model ExamPaper {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  programId     String   @map("program_id") @db.Uuid
+  examName      String   @map("exam_name")
+  examYear      Int      @map("exam_year")
+  shift         String?
+  sourceType    String?  @map("source_type")
+  sourceNote    String?  @map("source_note")
+  licenseStatus String?  @map("license_status")
+
+  program       Program  @relation(fields: [programId], references: [id])
+  questions     Question[]
+
+  @@unique([examName, examYear, shift])
+  @@map("exam_papers")
+}
+
+model TestSeries {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String
+  description     String?
+  price           Decimal     @default(0) @db.Decimal(10,2)
+  currency        String      @default("INR")
+  isFree          Boolean     @default(true) @map("is_free")
+  durationMinutes Int         @map("duration_minutes")
+  status          TestStatus  @default(DRAFT)
+  instructions    String?
+  testType        String?     @map("test_type")
+  questionCount   Int?        @map("question_count")
+  negativeMarking Decimal     @default(0) @map("negative_marking")
+  slug            String?     @unique
+
+  programId       String?     @map("program_id") @db.Uuid
+  subjectId       String?     @map("subject_id") @db.Uuid
+  topicId         String?     @map("topic_id") @db.Uuid
+
+  createdBy       String?     @map("created_by") @db.Uuid
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  publishedAt     DateTime?   @map("published_at")
+
+  author          User?       @relation("CreatedBy", fields: [createdBy], references: [id])
+  program         Program?    @relation(fields: [programId], references: [id])
+  subject         Subject?    @relation(fields: [subjectId], references: [id])
+  topic           Topic?      @relation(fields: [topicId], references: [id])
+
+  documents       Document[]
+  questions       TestSeriesQuestion[]
+  purchases       Purchase[]
+  attempts        Attempt[]
+
+  @@map("test_series")
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+  @@map("test_status")
+}
+
+model TestSeriesQuestion {
+  testSeriesId String @map("test_series_id") @db.Uuid
+  questionId   String @map("question_id") @db.Uuid
+  position     Int
+
+  testSeries   TestSeries @relation(fields: [testSeriesId], references: [id], onDelete: Cascade)
+  question     Question   @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  @@id([testSeriesId, questionId])
+  @@map("test_series_questions")
+}
+
+model Document {
+  id                String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  testSeriesId      String?            @map("test_series_id") @db.Uuid
+  uploadedBy        String             @map("uploaded_by") @db.Uuid
+  originalFilename  String             @map("original_filename")
+  fileType          DocumentFileType   @map("file_type")
+  mimeType          String             @map("mime_type")
+  sizeBytes         Int                @map("size_bytes")
+  storageKey        String             @map("storage_key")
+  storageUrl        String?            @map("storage_url")
+  status            DocumentStatus     @default(UPLOADED)
+  extractedTextKey  String?            @map("extracted_text_key")
+  ocrProvider       String?            @map("ocr_provider")
+  aiProvider        String?            @map("ai_provider")
+  errorMessage      String?            @map("error_message")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  testSeries        TestSeries?        @relation(fields: [testSeriesId], references: [id])
+  uploader          User               @relation(fields: [uploadedBy], references: [id])
+  questions         Question[]
+
+  @@map("documents")
+}
+
+enum DocumentFileType {
+  PDF
+  DOCX
+  HTML
+  @@map("document_file_type")
+}
+
+enum DocumentStatus {
+  UPLOADED
+  EXTRACTING
+  EXTRACTED
+  EXTRACT_FAILED
+  GENERATING
+  GENERATED
+  GENERATE_FAILED
+  APPROVED
+  @@map("document_status")
+}
+
+model Question {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionText     String               @map("question_text")
+  optionA          String               @map("option_a")
+  optionB          String               @map("option_b")
+  optionC          String               @map("option_c")
+  optionD          String               @map("option_d")
+  correctAnswer    AnswerOption         @map("correct_answer")
+  explanation      String?
+  source           QuestionSource       @default(MANUAL)
+  sourceDocumentId String?              @map("source_document_id") @db.Uuid
+  reviewStatus     QuestionReviewStatus @default(DRAFT) @map("review_status")
+  
+  subjectId        String?              @map("subject_id") @db.Uuid
+  topicId          String?              @map("topic_id") @db.Uuid
+  difficulty       Int?                 @db.SmallInt
+  examPaperId      String?              @map("exam_paper_id") @db.Uuid
+  paperQno         Int?                 @map("paper_qno")
+  reviewedBy       String?              @map("reviewed_by") @db.Uuid
+  contentHash      String?              @unique @map("content_hash")
+  language         String?              @default("en")
+  version          Int?                 @default(1)
+
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  sourceDocument   Document?            @relation(fields: [sourceDocumentId], references: [id])
+  subject          Subject?             @relation(fields: [subjectId], references: [id])
+  topic            Topic?               @relation(fields: [topicId], references: [id])
+  examPaper        ExamPaper?           @relation(fields: [examPaperId], references: [id])
+  
+  testSeriesLinks  TestSeriesQuestion[]
+  userAnswers      UserAnswer[]
+
+  @@map("questions")
+}
+
+enum AnswerOption {
+  A
+  B
+  C
+  D
+  @@map("answer_option")
+}
+
+enum QuestionReviewStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  @@map("question_review_status")
+}
+
+enum QuestionSource {
+  MANUAL
+  IMPORTED
+  AI_GENERATED
+  @@map("question_source")
+}
+
+model Purchase {
+  id             String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String          @map("user_id") @db.Uuid
+  testSeriesId   String          @map("test_series_id") @db.Uuid
+  amount         Decimal         @db.Decimal(10,2)
+  currency       String          @default("INR")
+  provider       PaymentProvider @default(RAZORPAY)
+  orderId        String          @unique @map("order_id")
+  paymentId      String?         @map("payment_id")
+  status         PurchaseStatus  @default(PENDING)
+  failureReason  String?         @map("failure_reason")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id])
+  testSeries     TestSeries      @relation(fields: [testSeriesId], references: [id])
+
+  @@map("purchases")
+}
+
+enum PaymentProvider {
+  RAZORPAY
+  STRIPE
+  @@map("payment_provider")
+}
+
+enum PurchaseStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+  @@map("purchase_status")
+}
+
+model Attempt {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  testSeriesId       String         @map("test_series_id") @db.Uuid
+  startedAt          DateTime       @default(now()) @map("started_at")
+  submittedAt        DateTime?      @map("submitted_at")
+  score              Int?
+  totalQuestions     Int            @map("total_questions")
+  correctAnswers     Int?           @map("correct_answers")
+  incorrectAnswers   Int?           @map("incorrect_answers")
+  unanswered         Int?
+  percentage         Decimal?       @db.Decimal(5,2)
+  timeTakenSeconds   Int?           @map("time_taken_seconds")
+  status             AttemptStatus  @default(IN_PROGRESS)
+  questionIds        String[]       @map("question_ids") @db.Uuid
+
+  user               User           @relation(fields: [userId], references: [id])
+  testSeries         TestSeries     @relation(fields: [testSeriesId], references: [id])
+  answers            UserAnswer[]
+
+  @@map("attempts")
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+  @@map("attempt_status")
+}
+
+model UserAnswer {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attemptId      String       @map("attempt_id") @db.Uuid
+  questionId     String       @map("question_id") @db.Uuid
+  selectedAnswer AnswerOption? @map("selected_answer")
+  isCorrect      Boolean?     @map("is_correct")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  attempt        Attempt      @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       Question     @relation(fields: [questionId], references: [id])
+
+  @@unique([attemptId, questionId])
+  @@map("user_answers")
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId     String?  @map("admin_id") @db.Uuid
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id") @db.Uuid
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  admin       User?    @relation(fields: [adminId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model PaymentEvent {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider    PaymentProvider
+  eventId     String          @unique @map("event_id")
+  eventType   String          @map("event_type")
+  orderId     String?         @map("order_id")
+  paymentId   String?         @map("payment_id")
+  payload     Json
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@map("payment_events")
+}
