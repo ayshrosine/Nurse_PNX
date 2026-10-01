@@ -1,5 +1,6 @@
 import 'server-only';
-import { query, queryOne } from '../db';
+import { prisma } from '../db';
+import { Prisma } from '@prisma/client';
 
 // ---------------------------------------------------------------- Programs
 
@@ -16,25 +17,50 @@ export interface ProgramRow {
 }
 
 export async function listPrograms(): Promise<ProgramRow[]> {
-  return query<ProgramRow>(
-    `SELECT p.id, p.code, p.name, p.slug, p.description, p.icon, p.sort_order,
-            (SELECT COUNT(*) FROM program_subjects ps WHERE ps.program_id = p.id)::int AS subject_count,
-            (SELECT COUNT(*) FROM test_series ts WHERE ts.program_id = p.id AND ts.status = 'PUBLISHED')::int AS test_count
-       FROM programs p
-      WHERE p.is_active = true
-      ORDER BY p.sort_order, p.name`,
-  );
+  const programs = await prisma.programs.findMany({
+    where: { is_active: true },
+    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    include: {
+      _count: {
+        select: {
+          program_subjects: true,
+          test_series: { where: { status: 'PUBLISHED' } },
+        },
+      },
+    },
+  });
+  return programs.map(p => ({
+    id: p.id,
+    code: p.code,
+    name: p.name,
+    slug: p.slug,
+    description: p.description,
+    icon: p.icon,
+    sort_order: p.sort_order,
+    subject_count: p._count.program_subjects,
+    test_count: p._count.test_series,
+  }));
 }
 
-export async function getProgramBySlug(slug: string) {
-  return queryOne<ProgramRow>(
-    `SELECT p.id, p.code, p.name, p.slug, p.description, p.icon, p.sort_order,
-            (SELECT COUNT(*) FROM program_subjects ps WHERE ps.program_id = p.id)::int AS subject_count,
-            (SELECT COUNT(*) FROM test_series ts WHERE ts.program_id = p.id AND ts.status = 'PUBLISHED')::int AS test_count
-       FROM programs p
-      WHERE p.slug = $1 AND p.is_active = true`,
-    [slug],
-  );
+export async function getProgramBySlug(slug: string): Promise<ProgramRow | null> {
+  const p = await prisma.programs.findUnique({
+    where: { slug, is_active: true },
+    include: {
+      _count: {
+        select: {
+          program_subjects: true,
+          test_series: { where: { status: 'PUBLISHED' } },
+        },
+      },
+    },
+  });
+  if (!p) return null;
+  return {
+    id: p.id, code: p.code, name: p.name, slug: p.slug, description: p.description,
+    icon: p.icon, sort_order: p.sort_order,
+    subject_count: p._count.program_subjects,
+    test_count: p._count.test_series,
+  };
 }
 
 // ---------------------------------------------------------------- Subjects
@@ -50,26 +76,43 @@ export interface SubjectRow {
 }
 
 export async function listSubjectsForProgram(programId: string): Promise<SubjectRow[]> {
-  return query<SubjectRow>(
-    `SELECT s.id, s.name, s.slug, s.icon, s.description,
-            (SELECT COUNT(*) FROM topics t WHERE t.subject_id = s.id)::int AS topic_count,
-            (SELECT COUNT(*) FROM questions q WHERE q.subject_id = s.id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM subjects s
-       JOIN program_subjects ps ON ps.subject_id = s.id
-      WHERE ps.program_id = $1
-      ORDER BY s.sort_order, s.name`,
-    [programId],
-  );
+  const subjects = await prisma.subjects.findMany({
+    where: {
+      program_subjects: { some: { program_id: programId } }
+    },
+    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    include: {
+      _count: {
+        select: {
+          topics: true,
+          questions: { where: { review_status: 'APPROVED' } }
+        }
+      }
+    }
+  });
+  return subjects.map(s => ({
+    id: s.id, name: s.name, slug: s.slug, icon: s.icon, description: s.description,
+    topic_count: s._count.topics, question_count: s._count.questions,
+  }));
 }
 
-export async function getSubjectBySlug(slug: string) {
-  return queryOne<SubjectRow>(
-    `SELECT s.id, s.name, s.slug, s.icon, s.description,
-            (SELECT COUNT(*) FROM topics t WHERE t.subject_id = s.id)::int AS topic_count,
-            (SELECT COUNT(*) FROM questions q WHERE q.subject_id = s.id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM subjects s WHERE s.slug = $1`,
-    [slug],
-  );
+export async function getSubjectBySlug(slug: string): Promise<SubjectRow | null> {
+  const s = await prisma.subjects.findUnique({
+    where: { slug },
+    include: {
+      _count: {
+        select: {
+          topics: true,
+          questions: { where: { review_status: 'APPROVED' } }
+        }
+      }
+    }
+  });
+  if (!s) return null;
+  return {
+    id: s.id, name: s.name, slug: s.slug, icon: s.icon, description: s.description,
+    topic_count: s._count.topics, question_count: s._count.questions,
+  };
 }
 
 // ---------------------------------------------------------------- Topics
@@ -84,14 +127,21 @@ export interface TopicRow {
 }
 
 export async function listTopicsForSubject(subjectId: string): Promise<TopicRow[]> {
-  return query<TopicRow>(
-    `SELECT t.id, t.name, t.slug, t.parent_id, t.sort_order,
-            (SELECT COUNT(*) FROM questions q WHERE q.topic_id = t.id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM topics t
-      WHERE t.subject_id = $1
-      ORDER BY t.sort_order, t.name`,
-    [subjectId],
-  );
+  const topics = await prisma.topics.findMany({
+    where: { subject_id: subjectId },
+    orderBy: [{ sort_order: 'asc' }, { name: 'asc' }],
+    include: {
+      _count: {
+        select: {
+          questions: { where: { review_status: 'APPROVED' } }
+        }
+      }
+    }
+  });
+  return topics.map(t => ({
+    id: t.id, name: t.name, slug: t.slug, parent_id: t.parent_id, sort_order: t.sort_order,
+    question_count: t._count.questions,
+  }));
 }
 
 /** Builds a nested tree from a flat topic list. */
@@ -161,38 +211,39 @@ export async function listTestsFiltered(opts: {
   testType?: string;
   isFree?: boolean;
 }): Promise<FilteredTestRow[]> {
-  const where = [`ts.status = 'PUBLISHED'`];
-  const params: unknown[] = [];
+  const where: Prisma.test_seriesWhereInput = { status: 'PUBLISHED' };
+  
+  if (opts.programSlug) where.programs = { slug: opts.programSlug };
+  if (opts.subjectSlug) where.subjects = { slug: opts.subjectSlug };
+  if (opts.testType) where.test_type = opts.testType as any;
+  if (opts.isFree !== undefined) where.is_free = opts.isFree;
 
-  if (opts.programSlug) {
-    params.push(opts.programSlug);
-    where.push(`p.slug = $${params.length}`);
-  }
-  if (opts.subjectSlug) {
-    params.push(opts.subjectSlug);
-    where.push(`s.slug = $${params.length}`);
-  }
-  if (opts.testType) {
-    params.push(opts.testType);
-    where.push(`ts.test_type = $${params.length}`);
-  }
-  if (opts.isFree !== undefined) {
-    params.push(opts.isFree);
-    where.push(`ts.is_free = $${params.length}`);
-  }
+  const tests = await prisma.test_series.findMany({
+    where,
+    orderBy: [
+      { is_free: 'desc' },
+      { published_at: 'desc' }
+    ],
+    include: {
+      programs: { select: { name: true } },
+      subjects: { select: { name: true } },
+      _count: { select: { questions: { where: { review_status: 'APPROVED' } } } }
+    }
+  });
 
-  return query<FilteredTestRow>(
-    `SELECT ts.id, ts.title, ts.description, ts.price, ts.is_free, ts.duration_minutes,
-            ts.test_type, ts.slug,
-            (SELECT COUNT(*) FROM questions q WHERE q.test_series_id = ts.id AND q.review_status = 'APPROVED')::int AS question_count,
-            p.name AS program_name, s.name AS subject_name
-       FROM test_series ts
-       LEFT JOIN programs p ON p.id = ts.program_id
-       LEFT JOIN subjects s ON s.id = ts.subject_id
-      WHERE ${where.join(' AND ')}
-      ORDER BY ts.is_free DESC, ts.published_at DESC NULLS LAST`,
-    params,
-  );
+  return tests.map(ts => ({
+    id: ts.id,
+    title: ts.title,
+    description: ts.description,
+    price: ts.price ? Number(ts.price) : 0,
+    is_free: ts.is_free,
+    duration_minutes: ts.duration_minutes,
+    test_type: ts.test_type,
+    question_count: ts._count.questions,
+    slug: ts.slug,
+    program_name: ts.programs?.name ?? null,
+    subject_name: ts.subjects?.name ?? null,
+  }));
 }
 
 // ---------------------------------------------------------------- PYQ Papers
@@ -208,33 +259,50 @@ export interface ExamPaperRow {
 }
 
 export async function listExamPapers(programSlug?: string): Promise<ExamPaperRow[]> {
-  const where = [];
-  const params: unknown[] = [];
-  if (programSlug) {
-    params.push(programSlug);
-    where.push(`p.slug = $${params.length}`);
-  }
-  const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+  const where: Prisma.exam_papersWhereInput = {};
+  if (programSlug) where.programs = { slug: programSlug };
 
-  return query<ExamPaperRow>(
-    `SELECT ep.id, ep.exam_name, ep.exam_year, ep.shift, p.name AS program_name,
-            ep.total_questions,
-            (SELECT COUNT(*) FROM questions q WHERE q.exam_paper_id = ep.id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM exam_papers ep
-       JOIN programs p ON p.id = ep.program_id
-       ${whereSql}
-      ORDER BY ep.exam_year DESC, ep.exam_name, ep.shift NULLS LAST`,
-    params,
-  );
+  const papers = await prisma.exam_papers.findMany({
+    where,
+    orderBy: [
+      { exam_year: 'desc' },
+      { exam_name: 'asc' },
+      { shift: 'asc' }
+    ],
+    include: {
+      programs: { select: { name: true } },
+      _count: { select: { questions: { where: { review_status: 'APPROVED' } } } }
+    }
+  });
+
+  return papers.map(ep => ({
+    id: ep.id,
+    exam_name: ep.exam_name,
+    exam_year: ep.exam_year,
+    shift: ep.shift,
+    program_name: ep.programs.name,
+    total_questions: ep.total_questions,
+    question_count: ep._count.questions,
+  }));
 }
 
 export async function getExamPaperQuestions(paperId: string) {
-  return query(
-    `SELECT q.id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
-            q.paper_qno, q.question_order
-       FROM questions q
-      WHERE q.exam_paper_id = $1 AND q.review_status = 'APPROVED'
-      ORDER BY q.paper_qno NULLS LAST, q.question_order`,
-    [paperId],
-  );
+  const questions = await prisma.questions.findMany({
+    where: { exam_paper_id: paperId, review_status: 'APPROVED' },
+    orderBy: [
+      { paper_qno: 'asc' },
+      { question_order: 'asc' }
+    ],
+    select: {
+      id: true,
+      question_text: true,
+      option_a: true,
+      option_b: true,
+      option_c: true,
+      option_d: true,
+      paper_qno: true,
+      question_order: true,
+    }
+  });
+  return questions;
 }

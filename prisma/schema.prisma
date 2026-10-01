@@ -6,3 +6,526 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model attempts {
+  id                 String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String         @db.Uuid
+  test_series_id     String         @db.Uuid
+  started_at         DateTime       @default(now()) @db.Timestamptz(6)
+  submitted_at       DateTime?      @db.Timestamptz(6)
+  score              Int?
+  total_questions    Int
+  correct_answers    Int?
+  incorrect_answers  Int?
+  unanswered         Int?
+  percentage         Decimal?       @db.Decimal(5, 2)
+  time_taken_seconds Int?
+  status             attempt_status @default(IN_PROGRESS)
+  question_ids       String[]       @default([]) @db.Uuid
+  test_series        test_series    @relation(fields: [test_series_id], references: [id], onUpdate: NoAction)
+  users              users          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  user_answers       user_answers[]
+
+  @@index([status], map: "idx_attempts_status")
+  @@index([test_series_id], map: "idx_attempts_test_series_id")
+  @@index([user_id], map: "idx_attempts_user_id")
+}
+
+model audit_logs {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  admin_id    String?  @db.Uuid
+  action      String
+  entity_type String
+  entity_id   String   @db.Uuid
+  metadata    Json?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  users       users?   @relation(fields: [admin_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([admin_id], map: "idx_audit_logs_admin_id")
+  @@index([entity_type, entity_id], map: "idx_audit_logs_entity")
+}
+
+model bookmarks {
+  user_id     String    @db.Uuid
+  question_id String    @db.Uuid
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  questions   questions @relation(fields: [question_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, question_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model coupons {
+  code        String    @id
+  description String?
+  percent_off Int
+  max_uses    Int?
+  used        Int       @default(0)
+  valid_from  DateTime? @default(now()) @db.Timestamptz(6)
+  valid_till  DateTime? @db.Timestamptz(6)
+  active      Boolean   @default(true)
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+}
+
+model daily_quizzes {
+  quiz_date      DateTime     @id @db.Date
+  test_series_id String?      @db.Uuid
+  subject_id     String?      @db.Uuid
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  subjects       subjects?    @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_series    test_series? @relation(fields: [test_series_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model documents {
+  id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  test_series_id     String?            @db.Uuid
+  uploaded_by        String             @db.Uuid
+  original_filename  String
+  file_type          document_file_type
+  mime_type          String
+  size_bytes         Int
+  storage_key        String
+  storage_url        String?
+  status             document_status    @default(UPLOADED)
+  extracted_text_key String?
+  ocr_provider       String?
+  ai_provider        String?
+  error_message      String?
+  created_at         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime           @default(now()) @db.Timestamptz(6)
+  test_series        test_series?       @relation(fields: [test_series_id], references: [id], onUpdate: NoAction)
+  users              users              @relation(fields: [uploaded_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  questions          questions[]
+
+  @@index([status], map: "idx_documents_status")
+  @@index([test_series_id], map: "idx_documents_test_series_id")
+  @@index([uploaded_by], map: "idx_documents_uploaded_by")
+}
+
+model entitlements {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  product_id         String    @db.Uuid
+  source_purchase_id String?   @db.Uuid
+  granted_at         DateTime  @default(now()) @db.Timestamptz(6)
+  expires_at         DateTime? @db.Timestamptz(6)
+  products           products  @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, product_id])
+  @@index([user_id], map: "idx_entitlements_user")
+}
+
+model exam_papers {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id      String      @db.Uuid
+  exam_name       String
+  exam_year       Int
+  shift           String?
+  source_type     String?
+  source_note     String?
+  total_questions Int?
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+  programs        programs    @relation(fields: [program_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  questions       questions[]
+
+  @@unique([exam_name, exam_year, shift])
+  @@index([program_id], map: "idx_exam_papers_program")
+}
+
+model leads {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email      String?
+  phone      String?
+  source     String?
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model payment_events {
+  id         String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider   payment_provider
+  event_id   String           @unique
+  event_type String
+  order_id   String?
+  payment_id String?
+  payload    Json
+  created_at DateTime         @default(now()) @db.Timestamptz(6)
+}
+
+model platform_settings {
+  key        String   @id
+  value      String
+  updated_by String?  @db.Uuid
+  updated_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users?   @relation(fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model product_items {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  product_id     String       @db.Uuid
+  test_series_id String?      @db.Uuid
+  resource_id    String?      @db.Uuid
+  products       products     @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  test_series    test_series? @relation(fields: [test_series_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([product_id], map: "idx_product_items_product")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model products {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  type          String
+  slug          String?         @unique
+  description   String?
+  price_paise   Int
+  mrp_paise     Int
+  active        Boolean         @default(true)
+  features      String[]
+  sort_order    Int             @default(0)
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime        @default(now()) @db.Timestamptz(6)
+  entitlements  entitlements[]
+  product_items product_items[]
+}
+
+model program_semesters {
+  program_id  String    @db.Uuid
+  semester_id String    @db.Uuid
+  programs    programs  @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  semesters   semesters @relation(fields: [semester_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([program_id, semester_id])
+}
+
+model program_subjects {
+  program_id  String     @db.Uuid
+  semester_id String?    @db.Uuid
+  subject_id  String     @db.Uuid
+  programs    programs   @relation(fields: [program_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  semesters   semesters? @relation(fields: [semester_id], references: [id], onUpdate: NoAction)
+  subjects    subjects   @relation(fields: [subject_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([program_id, subject_id])
+  @@index([semester_id], map: "idx_program_subjects_semester")
+}
+
+model programs {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code              String              @unique
+  name              String
+  slug              String              @unique
+  description       String?
+  icon              String?
+  sort_order        Int                 @default(0)
+  is_active         Boolean             @default(true)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  exam_papers       exam_papers[]
+  program_semesters program_semesters[]
+  program_subjects  program_subjects[]
+  test_series       test_series[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model purchases {
+  id             String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String           @db.Uuid
+  test_series_id String           @db.Uuid
+  amount         Decimal          @db.Decimal(10, 2)
+  currency       String           @default("INR")
+  provider       payment_provider @default(RAZORPAY)
+  order_id       String           @unique(map: "uq_purchases_order_id")
+  payment_id     String?
+  status         purchase_status  @default(PENDING)
+  failure_reason String?
+  created_at     DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime         @default(now()) @db.Timestamptz(6)
+  test_series    test_series      @relation(fields: [test_series_id], references: [id], onUpdate: NoAction)
+  users          users            @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([user_id, test_series_id, status], map: "idx_purchases_access")
+  @@index([status], map: "idx_purchases_status")
+  @@index([test_series_id], map: "idx_purchases_test_series_id")
+  @@index([user_id], map: "idx_purchases_user_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model questions {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  test_series_id        String                  @db.Uuid
+  question_text         String
+  option_a              String
+  option_b              String
+  option_c              String
+  option_d              String
+  correct_answer        answer_option
+  explanation           String?
+  question_order        Int
+  source                question_source         @default(MANUAL)
+  source_document_id    String?                 @db.Uuid
+  review_status         question_review_status  @default(APPROVED)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  subject_id            String?                 @db.Uuid
+  topic_id              String?                 @db.Uuid
+  difficulty            Int?                    @db.SmallInt
+  exam_paper_id         String?                 @db.Uuid
+  paper_qno             Int?
+  reviewed_by           String?                 @db.Uuid
+  content_hash          String?
+  language              String?                 @default("en")
+  version               Int?                    @default(1)
+  bookmarks             bookmarks[]
+  exam_papers           exam_papers?            @relation(fields: [exam_paper_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                 users?                  @relation(fields: [reviewed_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  documents             documents?              @relation(fields: [source_document_id], references: [id], onUpdate: NoAction)
+  subjects              subjects?               @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_series           test_series             @relation(fields: [test_series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  topics                topics?                 @relation(fields: [topic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_series_questions test_series_questions[]
+  user_answers          user_answers[]
+
+  @@unique([test_series_id, question_order], map: "uq_question_order")
+  @@index([exam_paper_id], map: "idx_questions_exam_paper")
+  @@index([review_status], map: "idx_questions_review_status")
+  @@index([source_document_id], map: "idx_questions_source_document_id")
+  @@index([subject_id, topic_id], map: "idx_questions_subject_topic")
+  @@index([test_series_id], map: "idx_questions_test_series_id")
+}
+
+model resources {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title          String
+  description    String?
+  subject_id     String?   @db.Uuid
+  storage_key    String
+  file_type      String    @default("PDF")
+  size_bytes     Int?
+  is_free        Boolean   @default(false)
+  download_count Int       @default(0)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  subjects       subjects? @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([subject_id], map: "idx_resources_subject")
+}
+
+model semesters {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  number            Int                 @unique
+  label             String
+  program_semesters program_semesters[]
+  program_subjects  program_subjects[]
+}
+
+model subjects {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  slug             String             @unique
+  icon             String?
+  description      String?
+  sort_order       Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  daily_quizzes    daily_quizzes[]
+  program_subjects program_subjects[]
+  questions        questions[]
+  resources        resources[]
+  test_series      test_series[]
+  topics           topics[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model test_series {
+  id                    String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                 String
+  description           String?
+  price                 Decimal                 @default(0) @db.Decimal(10, 2)
+  currency              String                  @default("INR")
+  is_free               Boolean                 @default(true)
+  duration_minutes      Int
+  status                test_status             @default(DRAFT)
+  instructions          String?
+  created_by            String?                 @db.Uuid
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                @default(now()) @db.Timestamptz(6)
+  published_at          DateTime?               @db.Timestamptz(6)
+  test_type             String?
+  program_id            String?                 @db.Uuid
+  subject_id            String?                 @db.Uuid
+  topic_id              String?                 @db.Uuid
+  negative_marking      Decimal?                @default(0) @db.Decimal
+  slug                  String?
+  attempts              attempts[]
+  daily_quizzes         daily_quizzes[]
+  documents             documents[]
+  product_items         product_items[]
+  purchases             purchases[]
+  questions             questions[]
+  users                 users?                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  programs              programs?               @relation(fields: [program_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subjects              subjects?               @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  topics                topics?                 @relation(fields: [topic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  test_series_questions test_series_questions[]
+
+  @@index([program_id], map: "idx_test_series_program")
+  @@index([status], map: "idx_test_series_status")
+  @@index([subject_id], map: "idx_test_series_subject")
+  @@index([test_type], map: "idx_test_series_type")
+}
+
+model test_series_questions {
+  test_series_id String      @db.Uuid
+  question_id    String      @db.Uuid
+  position       Int
+  questions      questions   @relation(fields: [question_id], references: [id], onUpdate: NoAction)
+  test_series    test_series @relation(fields: [test_series_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([test_series_id, question_id])
+}
+
+model topics {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  subject_id       String             @db.Uuid
+  parent_id        String?            @db.Uuid
+  name             String
+  slug             String
+  sort_order       Int                @default(0)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  questions        questions[]
+  test_series      test_series[]
+  topics           topics?            @relation("topicsTotopics", fields: [parent_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  other_topics     topics[]           @relation("topicsTotopics")
+  subjects         subjects           @relation(fields: [subject_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user_topic_stats user_topic_stats[]
+
+  @@unique([subject_id, slug])
+  @@index([parent_id], map: "idx_topics_parent")
+  @@index([subject_id], map: "idx_topics_subject")
+}
+
+model user_answers {
+  id              String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  attempt_id      String         @db.Uuid
+  question_id     String         @db.Uuid
+  selected_answer answer_option?
+  is_correct      Boolean?
+  created_at      DateTime       @default(now()) @db.Timestamptz(6)
+  attempts        attempts       @relation(fields: [attempt_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  questions       questions      @relation(fields: [question_id], references: [id], onUpdate: NoAction)
+
+  @@unique([attempt_id, question_id])
+  @@index([attempt_id], map: "idx_user_answers_attempt_id")
+}
+
+model user_topic_stats {
+  user_id           String    @db.Uuid
+  topic_id          String    @db.Uuid
+  attempted         Int       @default(0)
+  correct           Int       @default(0)
+  last_attempted_at DateTime? @db.Timestamptz(6)
+  topics            topics    @relation(fields: [topic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([user_id, topic_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  google_id         String?             @unique
+  name              String
+  email             String              @unique @db.Citext
+  phone             String?
+  role              user_role           @default(STUDENT)
+  status            user_status         @default(ACTIVE)
+  created_at        DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime            @default(now()) @db.Timestamptz(6)
+  last_login_at     DateTime?           @db.Timestamptz(6)
+  attempts          attempts[]
+  audit_logs        audit_logs[]
+  bookmarks         bookmarks[]
+  documents         documents[]
+  entitlements      entitlements[]
+  platform_settings platform_settings[]
+  purchases         purchases[]
+  questions         questions[]
+  test_series       test_series[]
+  user_topic_stats  user_topic_stats[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([google_id], map: "idx_users_google_id")
+  @@index([role], map: "idx_users_role")
+}
+
+enum answer_option {
+  A
+  B
+  C
+  D
+}
+
+enum attempt_status {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum document_file_type {
+  PDF
+  DOCX
+  HTML
+}
+
+enum document_status {
+  UPLOADED
+  EXTRACTING
+  EXTRACTED
+  EXTRACT_FAILED
+  GENERATING
+  GENERATED
+  GENERATE_FAILED
+  APPROVED
+}
+
+enum payment_provider {
+  RAZORPAY
+  STRIPE
+}
+
+enum purchase_status {
+  PENDING
+  SUCCESS
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum question_review_status {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum question_source {
+  MANUAL
+  IMPORTED
+  AI_GENERATED
+}
+
+enum test_status {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum user_role {
+  STUDENT
+  ADMIN
+}
+
+enum user_status {
+  ACTIVE
+  SUSPENDED
+}
