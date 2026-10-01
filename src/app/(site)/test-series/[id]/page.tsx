@@ -81,8 +81,8 @@ export default async function TestSeriesDetailPage({ params }: { params: Promise
           )}
 
           <section className="mt-8 rounded-card border border-line bg-surface p-5 text-sm text-ink-2">
-            <div className="font-medium text-ink">Prepared by Dhruva Thakre</div>
-            <div className="text-muted">Nursing Officer, GMCH Nagpur · Nursing Level Up</div>
+            <div className="font-medium text-ink">Prepared by Smita Bisen</div>
+            <div className="text-muted">Aspiring Nursing Educator · Nursing Level Up</div>
           </section>
         </div>
 

@@ -179,20 +179,19 @@ export default async function LandingPage() {
         <Container>
           <div className="animate-slide-up overflow-hidden rounded-2xl bg-gradient-to-br from-brand-800 to-brand-600">
             <div className="grid items-center gap-8 p-8 sm:grid-cols-[auto_1fr] sm:p-12">
-              <div className="flex size-20 items-center justify-center rounded-2xl bg-white/10 font-serif text-2xl font-semibold text-white ring-1 ring-white/20 backdrop-blur-sm">
-                DT
+              <div className="flex size-20 overflow-hidden items-center justify-center rounded-2xl bg-white/10 font-serif text-2xl font-semibold text-white ring-1 ring-white/20 backdrop-blur-sm">
+                <img src="/smita-bisen.jpg" alt="Smita Bisen" className="size-full object-cover" />
               </div>
               <div>
                 <div className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-200">
                   Created by a nursing professional
                 </div>
-                <h2 className="mt-2 text-2xl font-semibold text-white">Dhruva Thakre</h2>
+                <h2 className="mt-2 text-2xl font-semibold text-white">Smita Bisen</h2>
                 <p className="mt-1 text-brand-100/90">
-                  Nursing Officer, GMCH Nagpur · B.Sc. Nursing · Batch 2018, GMC Nagpur
+                  B.Sc. Nursing Graduate | Aspiring Nursing Educator
                 </p>
                 <p className="mt-4 max-w-2xl text-sm leading-relaxed text-brand-100/80">
-                  Every question is written and reviewed against current nursing curricula, with explanations that
-                  teach the reasoning — not just the answer.
+                  Dedicated to Advancing Nursing Education. Every question is written and reviewed against current curricula, focusing on digital learning and robust education — not just the answer.
                 </p>
               </div>
             </div>
