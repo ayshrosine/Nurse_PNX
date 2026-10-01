@@ -42,7 +42,10 @@ export function UserMenu({ name, email }: { name: string; email: string }) {
           </div>
           <div className="py-1 text-sm">
             <Link role="menuitem" href="/dashboard" className="block px-4 py-2 text-ink-2 hover:bg-sunken" onClick={() => setOpen(false)}>Dashboard</Link>
+            <Link role="menuitem" href="/exams" className="block px-4 py-2 text-ink-2 hover:bg-sunken" onClick={() => setOpen(false)}>Browse Exams</Link>
+            <Link role="menuitem" href="/bookmarks" className="block px-4 py-2 text-ink-2 hover:bg-sunken" onClick={() => setOpen(false)}>Bookmarks</Link>
             <Link role="menuitem" href="/profile" className="block px-4 py-2 text-ink-2 hover:bg-sunken" onClick={() => setOpen(false)}>Profile</Link>
+            <div className="my-1 border-t border-line" />
             <button role="menuitem" type="button" className="block w-full px-4 py-2 text-left text-ink-2 hover:bg-sunken" onClick={() => signOut({ redirectTo: '/' })}>
               Log out
             </button>

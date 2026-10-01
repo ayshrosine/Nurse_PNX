@@ -127,6 +127,27 @@ export default async function LandingPage() {
         </Container>
       </section>
 
+      {/* Explore */}
+      <section className="py-16 lg:py-20" id="explore">
+        <Container>
+          <div className="animate-slide-up">
+            <SectionTag>Explore</SectionTag>
+            <h2 className="mt-2 text-3xl font-semibold sm:text-4xl">Everything you need</h2>
+          </div>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {EXPLORE.map((item, i) => (
+              <Link key={item.href} href={item.href} className={`block group animate-slide-up stagger-${i + 1}`}>
+                <div className="group relative h-full rounded-2xl border border-line/60 bg-surface p-6 card-hover">
+                  <span className="text-3xl">{item.icon}</span>
+                  <h3 className="mt-3 font-serif text-lg font-semibold group-hover:text-brand-600 transition-colors">{item.title}</h3>
+                  <p className="mt-2 text-sm text-muted">{item.body}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </Container>
+      </section>
+
       {/* How it works */}
       <section className="relative overflow-hidden border-y border-line/50 bg-sunken/40 py-20 lg:py-24">
         <div className="pointer-events-none absolute inset-0 dot-pattern opacity-30" aria-hidden="true" />
@@ -209,6 +230,13 @@ const STEPS = [
   { n: '02', title: 'Attempt under exam conditions', body: 'A real timer, a question navigator, and mark-for-review — on any device.' },
   { n: '03', title: 'Review every answer', body: 'Instant, server-checked scores with the correct option and an explanation for each question.' },
   { n: '04', title: 'Track your progress', body: 'Your dashboard shows averages, best scores and how you are improving over time.' },
+];
+
+const EXPLORE = [
+  { icon: '🏥', title: 'Browse Exams', body: 'NORCET, ESIC, RRB, BSc Nursing — pick your target exam.', href: '/exams' },
+  { icon: '🔥', title: 'Daily Quiz', body: 'Free 10-question quiz every day. Build your streak!', href: '/daily-quiz' },
+  { icon: '📄', title: 'Notes & PDFs', body: 'Handwritten notes and study material for quick revision.', href: '/notes' },
+  { icon: '💰', title: 'Packs & Pricing', body: 'Affordable plans starting from ₹49. Get full mock tests.', href: '/packs' },
 ];
 
 function SectionTag({ children, className }: { children: React.ReactNode; className?: string }) {

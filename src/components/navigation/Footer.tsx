@@ -4,7 +4,7 @@ import { Logo } from './Logo';
 export function Footer() {
   return (
     <footer className="mt-24 border-t border-line/50">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-[2fr_1fr_1fr] sm:px-6">
+      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:grid-cols-[2fr_1fr_1fr_1fr] sm:px-6">
         <div>
           <Logo />
           <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
@@ -12,10 +12,20 @@ export function Footer() {
           </p>
         </div>
         <div>
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">Explore</div>
+          <ul className="mt-4 space-y-2.5 text-sm">
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/exams">Exams</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/daily-quiz">Daily Quiz</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/notes">Notes & PDFs</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/packs">Packs & Pricing</Link></li>
+          </ul>
+        </div>
+        <div>
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-faint">Practice</div>
           <ul className="mt-4 space-y-2.5 text-sm">
-            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/test-series">All test series</Link></li>
-            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/dashboard">Your dashboard</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/test-series">Test Series</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/bookmarks">Bookmarks</Link></li>
+            <li><Link className="text-ink-2 transition-colors hover:text-brand-600" href="/dashboard">Dashboard</Link></li>
           </ul>
         </div>
         <div>
