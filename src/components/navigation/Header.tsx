@@ -20,9 +20,6 @@ export async function Header() {
           <Link href="/test-series" className={NAV_LINK}>
             Test Series
           </Link>
-          <Link href="/daily-quiz" className={`hidden sm:block ${NAV_LINK}`}>
-            Daily Quiz
-          </Link>
           {user ? (
             <>
               <Link href="/dashboard" className={`hidden md:block ${NAV_LINK}`}>
