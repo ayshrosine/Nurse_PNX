@@ -50,6 +50,8 @@ export const testSeriesBaseSchema = z.object({
     .max(600, 'Duration must be at most 600 minutes'),
   instructions: optionalText(10000),
   status: testStatusSchema.default('DRAFT'),
+  program_id: z.string().uuid('Invalid program ID').optional(),
+  subject_id: z.string().uuid('Invalid subject ID').optional(),
 });
 
 export const testSeriesInputSchema = testSeriesBaseSchema

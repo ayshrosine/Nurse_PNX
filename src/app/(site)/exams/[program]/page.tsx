@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ButtonLink, Card, Container } from '@/components/ui';
 import { getProgramBySlug, listSubjectsForProgram, listTestsFiltered, listExamPapers } from '@/lib/server/services/catalogService';
+import { getTodaysQuiz } from '@/lib/server/services/dailyQuizService';
 
 export async function generateMetadata({ params }: { params: Promise<{ program: string }> }): Promise<Metadata> {
   const { program: slug } = await params;
@@ -17,10 +18,11 @@ export default async function ExamProgramPage({ params }: { params: Promise<{ pr
   const prog = await getProgramBySlug(slug);
   if (!prog) notFound();
 
-  const [subjects, tests, papers] = await Promise.all([
+  const [subjects, tests, papers, todaysQuiz] = await Promise.all([
     listSubjectsForProgram(prog.id),
     listTestsFiltered({ programSlug: slug }),
     listExamPapers(slug),
+    getTodaysQuiz(prog.id),
   ]);
 
   const freeTests = tests.filter((t) => t.is_free);
@@ -56,8 +58,42 @@ export default async function ExamProgramPage({ params }: { params: Promise<{ pr
         </div>
       </div>
 
+      {/* Daily Quiz Highlight */}
+      {todaysQuiz && todaysQuiz.test_series_id && (
+        <section className="mt-12 animate-slide-up stagger-1">
+          <Card className="relative overflow-hidden border-brand-200 bg-brand-50/30 p-0 sm:flex sm:items-stretch">
+            <div className="flex-1 p-6 sm:p-8">
+              <div className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-700">
+                <span className="relative flex size-2">
+                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-brand-500 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-brand-500" />
+                </span>
+                Live Today
+              </div>
+              <h2 className="mt-4 text-2xl font-bold text-ink sm:text-3xl">
+                Daily Quiz: {todaysQuiz.subject_name || prog.name}
+              </h2>
+              <p className="mt-2 text-muted">
+                {todaysQuiz.question_count} Questions · Exam-oriented · Detailed Explanations
+              </p>
+              <ButtonLink 
+                href={`/tests/${todaysQuiz.test_series_id}`} 
+                className="mt-6 shadow-md shadow-brand-500/20"
+              >
+                Start Today's Quiz
+              </ButtonLink>
+            </div>
+            <div className="hidden bg-gradient-to-br from-brand-600 to-brand-800 sm:block sm:w-1/3">
+              <div className="flex h-full items-center justify-center text-8xl opacity-20 mix-blend-overlay">
+                🎯
+              </div>
+            </div>
+          </Card>
+        </section>
+      )}
+
       {/* Subjects Grid */}
-      <section className="mt-12">
+      <section className="mt-12 animate-slide-up stagger-2">
         <h2 className="text-2xl font-semibold">Subjects</h2>
         <p className="mt-1 text-sm text-muted">Select a subject to browse topics and start practicing</p>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

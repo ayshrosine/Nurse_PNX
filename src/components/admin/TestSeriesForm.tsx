@@ -14,7 +14,7 @@ const DEFAULT_INSTRUCTIONS = [
   'The test submits automatically when the timer reaches zero.',
 ].join('\n');
 
-export function TestSeriesForm({ initial }: { initial?: TestSeries }) {
+export function TestSeriesForm({ initial, exams = [], subjects = [] }: { initial?: TestSeries; exams?: any[]; subjects?: any[] }) {
   const router = useRouter();
   const editing = Boolean(initial);
   const [values, setValues] = useState({
@@ -25,6 +25,8 @@ export function TestSeriesForm({ initial }: { initial?: TestSeries }) {
     duration_minutes: String(initial?.duration_minutes ?? 30),
     instructions: initial?.instructions ?? DEFAULT_INSTRUCTIONS,
     status: initial?.status ?? 'DRAFT',
+    program_id: initial?.program_id ?? '',
+    subject_id: initial?.subject_id ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -37,6 +39,8 @@ export function TestSeriesForm({ initial }: { initial?: TestSeries }) {
     e.preventDefault();
     const payload = {
       ...values,
+      program_id: values.program_id || undefined,
+      subject_id: values.subject_id || undefined,
       price: values.is_free ? 0 : Number(values.price),
       duration_minutes: Number(values.duration_minutes),
       currency: 'INR' as const,
@@ -67,6 +71,23 @@ export function TestSeriesForm({ initial }: { initial?: TestSeries }) {
     <form onSubmit={onSubmit} noValidate>
       <Card className="space-y-5 p-6">
         {formError && <Alert>{formError}</Alert>}
+        
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Exam / Program" htmlFor="program_id" error={errors.program_id}>
+            <Select id="program_id" value={values.program_id} onChange={set('program_id')}>
+              <option value="">None (Global)</option>
+              {exams.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </Select>
+          </Field>
+          
+          <Field label="Subject" htmlFor="subject_id" error={errors.subject_id}>
+            <Select id="subject_id" value={values.subject_id} onChange={set('subject_id')}>
+              <option value="">None (Global / All Subjects)</option>
+              {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </Select>
+          </Field>
+        </div>
+
         <Field label="Title" htmlFor="title" error={errors.title} required>
           <Input id="title" value={values.title} onChange={set('title')} maxLength={200} aria-invalid={Boolean(errors.title)} />
         </Field>

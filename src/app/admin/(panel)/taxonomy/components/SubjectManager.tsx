@@ -95,12 +95,12 @@ export default function SubjectManager({
                         <button
                           key={p.id}
                           onClick={() => handleToggleLink(p.id, s.id, isLinked)}
-                          className={\`px-2 py-1 text-xs rounded-md transition-colors \${
+                          className={`px-2 py-1 text-xs rounded-md transition-colors ${
                             isLinked 
                               ? 'bg-brand-100 text-brand-700 hover:bg-red-100 hover:text-red-700' 
                               : 'bg-muted/50 text-muted hover:bg-brand-50 hover:text-brand-600'
-                          }\`}
-                          title={isLinked ? \`Remove from \${p.name}\` : \`Add to \${p.name}\`}
+                          }`}
+                          title={isLinked ? `Remove from ${p.name}` : `Add to ${p.name}`}
                         >
                           {p.code} {isLinked ? '✓' : '+'}
                         </button>

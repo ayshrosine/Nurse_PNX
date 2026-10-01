@@ -1,60 +1,73 @@
 import 'server-only';
-import { query, queryOne } from '../db';
+import { prisma } from '../db';
 
 export interface DailyQuizInfo {
-  quiz_date: string;
+  id: string;
+  quiz_date: Date;
   test_series_id: string | null;
   subject_name: string | null;
   title: string;
   question_count: number;
 }
 
-/** Get today's daily quiz. Returns null if none is scheduled. */
-export async function getTodaysQuiz(): Promise<DailyQuizInfo | null> {
-  return queryOne<DailyQuizInfo>(
-    `SELECT dq.quiz_date, dq.test_series_id, s.name AS subject_name,
-            COALESCE(ts.title, 'Daily Quiz — ' || to_char(dq.quiz_date, 'DD Mon YYYY')) AS title,
-            (SELECT COUNT(*) FROM questions q WHERE q.test_series_id = dq.test_series_id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM daily_quizzes dq
-       LEFT JOIN test_series ts ON ts.id = dq.test_series_id
-       LEFT JOIN subjects s ON s.id = dq.subject_id
-      WHERE dq.quiz_date = CURRENT_DATE`,
-  );
+/** Get today's daily quiz for a specific exam program. If not provided, gets the first available one. */
+export async function getTodaysQuiz(programId?: string): Promise<DailyQuizInfo | null> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dq = await prisma.daily_quizzes.findFirst({
+    where: {
+      ...(programId ? { program_id: programId } : {}),
+      quiz_date: today,
+    },
+    include: {
+      subjects: true,
+      test_series: {
+        include: {
+          _count: {
+            select: { questions: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!dq) return null;
+
+  return {
+    id: dq.id,
+    quiz_date: dq.quiz_date,
+    test_series_id: dq.test_series_id,
+    subject_name: dq.subjects?.name || null,
+    title: dq.test_series?.title || `Daily Quiz — ${dq.quiz_date.toDateString()}`,
+    question_count: dq.test_series?._count.questions || 10,
+  };
 }
 
-/** Get a user's daily quiz streak (consecutive days they've completed a daily quiz). */
-export async function getDailyStreak(userId: string): Promise<number> {
-  const row = await queryOne<{ streak: number }>(
-    `WITH completed_dates AS (
-       SELECT DISTINCT dq.quiz_date
-         FROM daily_quizzes dq
-         JOIN attempts a ON a.test_series_id = dq.test_series_id AND a.user_id = $1 AND a.status = 'COMPLETED'
-        ORDER BY dq.quiz_date DESC
-     ),
-     streaks AS (
-       SELECT quiz_date,
-              quiz_date - (ROW_NUMBER() OVER (ORDER BY quiz_date DESC))::int AS grp
-         FROM completed_dates
-     )
-     SELECT COUNT(*)::int AS streak
-       FROM streaks
-      WHERE grp = (SELECT grp FROM streaks WHERE quiz_date = CURRENT_DATE OR quiz_date = CURRENT_DATE - 1 LIMIT 1)`,
-    [userId],
-  );
-  return row?.streak ?? 0;
+/** Get a user's daily quiz streak for a specific exam program. If no program, just returns 0. */
+export async function getDailyStreak(userId: string, programId?: string): Promise<number> {
+  if (!programId) return 0; // Global streaks not supported in schema yet
+  const streak = await prisma.streaks.findUnique({
+    where: {
+      user_id_program_id: { user_id: userId, program_id: programId }
+    }
+  });
+  return streak?.current ?? 0;
 }
 
-/** List recent daily quizzes (for a calendar/history view). */
-export async function listRecentQuizzes(limit = 30): Promise<DailyQuizInfo[]> {
-  return query<DailyQuizInfo>(
-    `SELECT dq.quiz_date, dq.test_series_id, s.name AS subject_name,
-            COALESCE(ts.title, 'Daily Quiz — ' || to_char(dq.quiz_date, 'DD Mon YYYY')) AS title,
-            (SELECT COUNT(*) FROM questions q WHERE q.test_series_id = dq.test_series_id AND q.review_status = 'APPROVED')::int AS question_count
-       FROM daily_quizzes dq
-       LEFT JOIN test_series ts ON ts.id = dq.test_series_id
-       LEFT JOIN subjects s ON s.id = dq.subject_id
-      ORDER BY dq.quiz_date DESC
-      LIMIT $1`,
-    [limit],
-  );
+/** List recent quizzes. */
+export async function listRecentQuizzes(days: number): Promise<{ quiz_date: string; title: string; subject_name: string | null }[]> {
+  const dqs = await prisma.daily_quizzes.findMany({
+    take: days,
+    orderBy: { quiz_date: 'desc' },
+    include: {
+      subjects: true,
+      test_series: true
+    }
+  });
+  return dqs.map(dq => ({
+    quiz_date: dq.quiz_date.toISOString(),
+    title: dq.test_series?.title || `Daily Quiz`,
+    subject_name: dq.subjects?.name || null,
+  }));
 }

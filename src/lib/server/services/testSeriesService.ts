@@ -123,10 +123,10 @@ export async function create(input: TestSeriesInput, admin: User) {
       throw new ApiError(409, 'CONFLICT', 'Create the test as a draft, add questions, then publish it');
     }
     const row = await queryOne<{ id: string }>(
-      `INSERT INTO test_series (title, description, price, currency, is_free, duration_minutes, status, instructions, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+      `INSERT INTO test_series (title, description, price, currency, is_free, duration_minutes, status, instructions, created_by, program_id, subject_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
       [input.title, input.description, input.price, input.currency, input.is_free, input.duration_minutes,
-        input.status, input.instructions, admin.id],
+        input.status, input.instructions, admin.id, input.program_id ?? null, input.subject_id ?? null],
       db,
     );
     await logAudit(admin.id, 'TEST_CREATED', 'test_series', row!.id, { title: input.title }, db);
@@ -143,11 +143,11 @@ export async function update(id: string, input: TestSeriesInput, admin: User) {
     await query(
       `UPDATE test_series
           SET title = $2, description = $3, price = $4, currency = $5, is_free = $6, duration_minutes = $7,
-              status = $8, instructions = $9,
+              status = $8, instructions = $9, program_id = $10, subject_id = $11,
               published_at = CASE WHEN $8::test_status = 'PUBLISHED' AND published_at IS NULL THEN now() ELSE published_at END
         WHERE id = $1`,
       [id, input.title, input.description, input.price, input.currency, input.is_free, input.duration_minutes,
-        input.status, input.instructions],
+        input.status, input.instructions, input.program_id ?? null, input.subject_id ?? null],
       db,
     );
     await logAudit(admin.id, 'TEST_UPDATED', 'test_series', id, { fields: Object.keys(input) }, db);
