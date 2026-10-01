@@ -11,8 +11,13 @@ export default async function ContinuePage({ searchParams }: { searchParams: Pro
   const { next: rawNext } = await searchParams;
   const user = await getCurrentUser();
   if (!user) redirect('/login');
-  const fallback = user.role === 'ADMIN' ? '/admin' : '/dashboard';
-  const next = safeNext(rawNext, fallback);
-  if (!user.phone && user.role !== 'ADMIN') redirect(`/complete-profile?next=${encodeURIComponent(next)}`);
-  redirect(next === '/dashboard' && user.role === 'ADMIN' ? '/admin' : next);
+  
+  if (user.role === 'ADMIN') {
+    redirect('/admin');
+  }
+
+  const next = safeNext(rawNext, '/dashboard');
+  if (!user.phone) redirect(`/complete-profile?next=${encodeURIComponent(next)}`);
+  
+  redirect(next);
 }
