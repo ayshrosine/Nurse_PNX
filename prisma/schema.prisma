@@ -69,12 +69,19 @@ model coupons {
 }
 
 model daily_quizzes {
-  quiz_date      DateTime     @id @db.Date
-  test_series_id String?      @db.Uuid
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  program_id     String       @db.Uuid
   subject_id     String?      @db.Uuid
+  quiz_date      DateTime     @db.Date
+  source         String       @default("SCHEDULED")
+  test_series_id String?      @db.Uuid
+  access_tier    String       @default("FREE")
   created_at     DateTime     @default(now()) @db.Timestamptz(6)
-  subjects       subjects?    @relation(fields: [subject_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  test_series    test_series? @relation(fields: [test_series_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  programs       programs     @relation(fields: [program_id], references: [id], onDelete: Cascade)
+  subjects       subjects?    @relation(fields: [subject_id], references: [id], onDelete: Cascade)
+  test_series    test_series? @relation(fields: [test_series_id], references: [id], onDelete: SetNull)
+
+  @@unique([program_id, subject_id, quiz_date], map: "uq_daily_quizzes")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -226,6 +233,10 @@ model programs {
   program_semesters program_semesters[]
   program_subjects  program_subjects[]
   test_series       test_series[]
+  daily_quizzes     daily_quizzes[]
+  user_programs     user_programs[]
+  question_programs question_programs[]
+  streaks           streaks[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -287,6 +298,7 @@ model questions {
   topics                topics?                 @relation(fields: [topic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   test_series_questions test_series_questions[]
   user_answers          user_answers[]
+  question_programs     question_programs[]
 
   @@unique([test_series_id, question_order], map: "uq_question_order")
   @@index([exam_paper_id], map: "idx_questions_exam_paper")
@@ -453,6 +465,8 @@ model users {
   questions         questions[]
   test_series       test_series[]
   user_topic_stats  user_topic_stats[]
+  user_programs     user_programs[]
+  streaks           streaks[]
 
   @@index([email], map: "idx_users_email")
   @@index([google_id], map: "idx_users_google_id")
@@ -528,4 +542,36 @@ enum user_role {
 enum user_status {
   ACTIVE
   SUSPENDED
+}
+
+model user_programs {
+  user_id    String   @db.Uuid
+  program_id String   @db.Uuid
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  users      users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  programs   programs @relation(fields: [program_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, program_id])
+}
+
+model question_programs {
+  question_id String    @db.Uuid
+  program_id  String    @db.Uuid
+  questions   questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  programs    programs  @relation(fields: [program_id], references: [id], onDelete: Cascade)
+
+  @@id([question_id, program_id])
+}
+
+model streaks {
+  user_id        String   @db.Uuid
+  program_id     String   @db.Uuid
+  current        Int      @default(0)
+  best           Int      @default(0)
+  last_quiz_date DateTime @db.Date
+  users          users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  programs       programs @relation(fields: [program_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, program_id])
 }
