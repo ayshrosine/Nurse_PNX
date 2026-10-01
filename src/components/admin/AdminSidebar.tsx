@@ -10,8 +10,11 @@ import { LogoMark } from '@/components/navigation/Logo';
 const NAV = [
   { href: '/admin', label: 'Dashboard', icon: 'M3 10h6V3H3zm8 7h6V10h-6zM3 17h6v-5H3zm8-9h6V3h-6z' },
   { href: '/admin/users', label: 'Users', icon: 'M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-6 8c0-3 3-5 6-5s6 2 6 5z' },
+  { href: '/admin/taxonomy', label: 'Taxonomy', icon: 'M10 3L3 7h14L10 3zm-7 5v8h14V8H3zm12 6H5v-4h10v4z' },
+  { href: '/admin/products', label: 'Products', icon: 'M16 4H4C2.9 4 2 4.9 2 6v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 16V6h12v10H4zm2-8h8v2H6V8zm0 4h5v2H6v-2z' },
+  { href: '/admin/papers', label: 'PYQ Papers', icon: 'M6 2c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2H6zm0 2h8v12H6V4zm2 2h4v2H8V6zm0 4h4v2H8v-2z' },
   { href: '/admin/test-series', label: 'Test Series', icon: 'M4 3h9l3 3v11H4zm3 5h6v1.5H7zm0 3h6v1.5H7z' },
-  { href: '/admin/questions', label: 'Questions', icon: 'M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 12.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-4v.5H9V9.5c0-1.5 2-1.6 2-3a1 1 0 0 0-2 0H7a3 3 0 1 1 6 0c0 2-2 2.3-2 4z' },
+  { href: '/admin/questions', label: 'Question Bank', icon: 'M10 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 12.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-4v.5H9V9.5c0-1.5 2-1.6 2-3a1 1 0 0 0-2 0H7a3 3 0 1 1 6 0c0 2-2 2.3-2 4z' },
   { href: '/admin/purchases', label: 'Purchases', icon: 'M3 5h14v10H3zm0 3h14v2H3z' },
   { href: '/admin/attempts', label: 'Attempts', icon: 'M5 3h10v14H5zm2 4h6v1.5H7zm0 3h6v1.5H7zm0 3h4v1.5H7z' },
   { href: '/admin/settings', label: 'Settings', icon: 'M10 6.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zM9 1h2l.4 2.2 1.7.7 1.8-1.3 1.4 1.4-1.3 1.8.7 1.7L18 9v2l-2.2.4-.7 1.7 1.3 1.8-1.4 1.4-1.8-1.3-1.7.7L11 19H9l-.4-2.2-1.7-.7-1.8 1.3-1.4-1.4 1.3-1.8-.7-1.7L2 11V9l2.2-.4.7-1.7-1.3-1.8 1.4-1.4 1.8 1.3 1.7-.7z' },
