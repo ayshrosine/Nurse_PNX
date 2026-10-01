@@ -1,48 +1,40 @@
 # Nursing Level Up - Project Progress Report
 
-## Current Status and Level
-**Current Level:** Production-Ready End-to-End Foundation (Phase 4 complete, preparing for ORM migration).
+**Project Directory:** `d:\adrix\adrix-courese-web`
 
-The project has reached a highly mature state, transitioning from a basic test engine into a comprehensive, taxonomy-driven platform for nursing students. The frontend and backend architectures are fully wired, handling complex data flows such as real-time test timing, progress tracking, and e-commerce entitlements.
+## Current Project Level
+The project is currently at a **Production-Ready Beta** level. The core functional requirements of the modular monolith architecture have been successfully implemented. The end-to-end flow from Admin content creation to Student consumption and test-taking is fully operational. The database schema has been solidified using Prisma ORM, and the application is stable with a highly customized Tailwind v4 UI.
 
-Recently, the codebase was heavily cleaned. Legacy files, test configurations, and old database migration scripts were stripped out to ensure a lean environment for the upcoming Prisma ORM migration.
+## Spec Verification (Against `Nursing Level Up: Exam-Centric Flow`)
 
-## New Features Added
-1. **Dynamic Taxonomy System:** Implemented programs, subjects, and topics. Users can browse targeted exams (e.g., NORCET, BSc Nursing).
-2. **Practice Mode (Untimed):** Topic-level practice feature offering instant green/red feedback and explanations upon answer selection.
-3. **Daily Quiz Engine:** A free, daily 10-question quiz system that tracks consecutive days of user activity to build "streaks" and gamify learning.
-4. **Bookmarks:** A system allowing users to save specific questions for later review, cleanly grouped by subject.
-5. **Study Material (Notes/PDFs):** Read-only resources (free and paid) available for direct download.
-6. **E-commerce & Entitlements:** "Packs and Pricing" integration showing tiered plans and tracking user entitlements to premium test series and resources.
-7. **Codebase Cleanup:** Removed outdated raw SQL scripts (`db/`, `scripts/`) and test configs (`vitest`, `playwright`) to prepare the codebase for a cleaner ORM layer.
-8. **Prisma ORM Initialization:** Prisma has been successfully initialized in the project (`prisma/schema.prisma`) as a precursor to rewriting the raw SQL data layer.
+We have successfully migrated the platform to match the "MARKS app" reference model outlined in the specs. Here is the detailed verification:
 
-## Directory Structure
-The architecture follows a strict Next.js App Router structure with modular monolith patterns:
+### 1. Core Architecture Change
+- **✅ Implemented:** The hierarchy is completely Exam-Centric (`Exam -> Subjects -> Topics -> Tests/PYQs`).
+- **✅ Implemented:** "Daily Quiz" has been successfully removed from the global navbar and is now tightly scoped to specific Exams (e.g., NORCET Daily Quiz).
+- **✅ Implemented:** The backend relational schema maps `programs` (exams) to `subjects`, `topics`, `test_series`, and `daily_quizzes`.
 
-```text
-d:\adrix\adrix-courese-web
-├── prisma/
-│   └── schema.prisma        # Database schema definitions for Prisma ORM
-├── specs/
-│   ├── Nursing Level Up_ System Design & SDLC Guide.md
-│   ├── nursing_level_up_implementation_plan.md
-│   └── project_progress_report.md
-├── src/
-│   ├── app/                 # Next.js App Router
-│   │   ├── (site)/          # Public-facing web pages (Exams, Practice, Bookmarks)
-│   │   ├── admin/           # Admin dashboard routes
-│   │   └── api/             # RESTful API endpoints 
-│   ├── components/          # Reusable React components (UI, test runner, navigation)
-│   ├── lib/                 # Shared utilities
-│   │   ├── api.ts           # Client-side API wrapper
-│   │   ├── server/          # Backend logic
-│   │   │   ├── db.ts        # Database connection pool (pg)
-│   │   │   └── services/    # Business logic (e.g., catalogService.ts, practiceService.ts)
-│   └── types/               # Global TypeScript definitions
-├── package.json
-└── README.md
-```
+### 2. Student Flow
+- **✅ Implemented:** The Landing page and Login functionality.
+- **✅ Implemented:** **Exam Hub (`/exams/[exam]`)**: Displays the specific Daily Quiz, topics, mock tests, and PYQs for the chosen exam.
+- **✅ Implemented:** **Subject & Topic Pages (`/exams/[exam]/[subject]`)**: Lists hierarchical topics with question counts and practice CTA buttons.
+- **✅ Implemented:** **Test Runner & Results**: Advanced client-side test engine with server-side validation and scoring.
+- **⏳ Pending/Future Polish:** "Which exam are you preparing for?" multi-select onboarding popup on first login (currently users browse exams via the Exam Hub freely).
 
-## Next Steps
-The immediate next phase is the massive structural rewrite of the data layer. Currently, the 14 files in `src/lib/server/services/` use raw SQL (`pg`). These must be systematically rewritten to use the new Prisma Client to ensure type-safe database queries across the board.
+### 3. Admin Console
+- **✅ Implemented:** **Taxonomy Manager (`/admin/taxonomy`)**: Admins can visually manage Exams (Programs), create Subjects, map subjects to exams, and build hierarchical Topic trees.
+- **✅ Implemented:** **Subject Deletion & Unlinking**: Admins can safely unlink or delete subjects.
+- **✅ Implemented:** **Test Series Builder (`/admin/test-series`)**: Full CRUD for creating tests, setting prices, durations, and instructions.
+- **✅ NEW FEATURE ADDED:** Admins can now explicitly link a Test Series / PYQ paper to a specific Exam (`program_id`) and Subject (`subject_id`) via a dropdown in the UI, fulfilling the spec requirement to "upload and create PYQs and test series inside that subject".
+- **✅ Implemented:** **Question Bank & AI Import**: Admins can manually add questions or import via CSV/AI.
+
+### 4. Daily Quizzes
+- **✅ Implemented:** Daily quizzes are tracked per exam program.
+- **✅ Implemented:** Student streak tracking per exam.
+- **✅ Implemented:** Seed data automatically generates Daily Quizzes for testing.
+
+## New Features Added in Recent Updates
+1. **Prisma ORM Migration:** Fully migrated from raw SQL logic to Prisma ORM for type-safe database queries and migrations.
+2. **Dynamic Daily Quizzes:** Implemented the `dailyQuizService` to dynamically fetch today's quiz based on the requested exam.
+3. **Advanced Admin Linking:** Test Series creation form now includes "Exam / Program" and "Subject" selectors so admins can route specific mock tests and PYQs directly into a student's Subject Dashboard.
+4. **Comprehensive Seeder:** A robust `prisma/seed.js` script that builds a realistic mock environment (Nursing exams, MSN/FON subjects, topics, and Daily Quizzes) for local development without needing manual data entry.
