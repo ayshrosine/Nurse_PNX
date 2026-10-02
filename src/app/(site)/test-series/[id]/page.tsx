@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ButtonLink, Card, Container, StatusBadge } from '@/components/ui';
 import { AccessBadge } from '@/components/test-series/TestSeriesCard';
-import { getCurrentUser } from '@/lib/server/session';
+import { getCurrentUser, requireUserPage } from '@/lib/server/session';
 import { getPublished } from '@/lib/server/services/testSeriesService';
 import { query } from '@/lib/server/db';
 import { formatDate, formatPercent, formatPrice } from '@/lib/format';

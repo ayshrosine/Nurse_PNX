@@ -12,8 +12,11 @@ export async function generateMetadata({ params }: { params: Promise<{ program: 
 
 export const dynamic = 'force-dynamic';
 
+import { requireUserPage } from '@/lib/server/session';
+
 export default async function SubjectTopicsPage({ params }: { params: Promise<{ program: string; subject: string }> }) {
   const { program: programSlug, subject: subjectSlug } = await params;
+  await requireUserPage(`/exams/${programSlug}/${subjectSlug}`);
   const [prog, sub] = await Promise.all([
     getProgramBySlug(programSlug),
     getSubjectBySlug(subjectSlug),
