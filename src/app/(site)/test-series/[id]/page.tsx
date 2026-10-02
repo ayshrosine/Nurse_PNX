@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ButtonLink, Card, Container, StatusBadge } from '@/components/ui';
 import { AccessBadge } from '@/components/test-series/TestSeriesCard';
-import { getCurrentUser, requireUserPage } from '@/lib/server/session';
+import { getCurrentUser } from '@/lib/server/session';
 import { getPublished } from '@/lib/server/services/testSeriesService';
 import { query } from '@/lib/server/db';
 import { formatDate, formatPercent, formatPrice } from '@/lib/format';
@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 async function load(id: string) {
   if (!uuidSchema.safeParse(id).success) return null;
-  const user = await requireUserPage(`/test-series/${id}`);
+  const user = await getCurrentUser();
   const series = await getPublished(id, user);
   return series ? { user, series } : null;
 }

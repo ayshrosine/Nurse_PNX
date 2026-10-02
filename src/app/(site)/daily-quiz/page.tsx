@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ButtonLink, Card, Container, EmptyState } from '@/components/ui';
-import { requireUserPage } from '@/lib/server/session';
+import { getCurrentUser } from '@/lib/server/session';
 import { getTodaysQuiz, getDailyStreak, listRecentQuizzes } from '@/lib/server/services/dailyQuizService';
 import { formatDate } from '@/lib/format';
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Daily Quiz' };
 export const dynamic = 'force-dynamic';
 
 export default async function DailyQuizPage() {
-  const user = await requireUserPage('/daily-quiz');
+  const user = await getCurrentUser();
   const [todayQuiz, recentQuizzes] = await Promise.all([
     getTodaysQuiz(),
     listRecentQuizzes(14),

@@ -1,14 +1,15 @@
 import type { Metadata } from 'next';
 import { Container, EmptyState, PageHeader } from '@/components/ui';
 import { TestSeriesCard } from '@/components/test-series/TestSeriesCard';
-import { requireUserPage } from '@/lib/server/session';
+import { getCurrentUser } from '@/lib/server/session';
 import { listPublished } from '@/lib/server/services/testSeriesService';
 
 export const metadata: Metadata = { title: 'Test Series' };
 export const dynamic = 'force-dynamic';
 
 export default async function TestSeriesPage() {
-  const series = await listPublished(await requireUserPage('/test-series'));
+  const user = await getCurrentUser();
+  const series = await listPublished(user);
   const free = series.filter((s) => s.is_free);
   const paid = series.filter((s) => !s.is_free);
 

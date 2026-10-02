@@ -16,10 +16,7 @@ const PROGRAM_GRADIENTS: Record<string, string> = {
   gnm: 'from-sky-700 to-sky-500',
 };
 
-import { requireUserPage } from '@/lib/server/session';
-
 export default async function ExamsPage() {
-  await requireUserPage('/exams');
   const programs = await listPrograms();
 
   return (
