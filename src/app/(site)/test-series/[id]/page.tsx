@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 
 async function load(id: string) {
   if (!uuidSchema.safeParse(id).success) return null;
-  const user = await getCurrentUser();
+  const user = await requireUserPage(`/test-series/${id}`);
   const series = await getPublished(id, user);
   return series ? { user, series } : null;
 }

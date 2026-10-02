@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ButtonLink, Card, Container, EmptyState } from '@/components/ui';
-import { getCurrentUser } from '@/lib/server/session';
+import { requireUserPage } from '@/lib/server/session';
 import { getTodaysQuiz, getDailyStreak, listRecentQuizzes } from '@/lib/server/services/dailyQuizService';
 import { formatDate } from '@/lib/format';
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Daily Quiz' };
 export const dynamic = 'force-dynamic';
 
 export default async function DailyQuizPage() {
-  const user = await getCurrentUser();
+  const user = await requireUserPage('/daily-quiz');
   const [todayQuiz, recentQuizzes] = await Promise.all([
     getTodaysQuiz(),
     listRecentQuizzes(14),
@@ -95,18 +95,6 @@ export default async function DailyQuizPage() {
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* CTA for non-logged-in users */}
-      {!user && (
-        <div className="mx-auto mt-12 max-w-xl">
-          <Card className="border-brand-200 bg-brand-50/50 p-6 text-center">
-            <p className="text-sm text-brand-700">
-              Sign in with Google to track your streak and save your progress.
-            </p>
-            <ButtonLink href="/login" size="sm" className="mt-3">Sign In Free</ButtonLink>
-          </Card>
         </div>
       )}
     </Container>
